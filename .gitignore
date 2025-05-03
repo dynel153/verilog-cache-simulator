@@ -1,0 +1,22 @@
+# Simulation output files
+*.vcd
+*.log
+*.out
+*.fst
+*.wlf
+*.vvp
+
+# Compiled binaries
+*.o
+*.exe
+*.a
+
+# Backup and temp files
+*.bak
+*~
+*.swp
+
+# Work/sim folders
+work/
+sim/
+obj_dir/

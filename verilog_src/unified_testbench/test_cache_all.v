@@ -27,7 +27,7 @@ module test_cache_all;
     );
 
     // Instantiate 2-Way Cache
-    cache_system_full2way cache_2way (
+    cache_system_2way cache_2way (
         .clk(clk), .rst(rst), .read(read), .addr(addr),
         .read_data(data_2way), .l1_hit(hit_2way), .l2_hit()
     );

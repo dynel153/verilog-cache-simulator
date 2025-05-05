@@ -1,4 +1,4 @@
-``timescale 1ns/1ps
+`timescale 1ns/1ps
 
 module cache_system_2level #(
     parameter ADDR_WIDTH = 11,

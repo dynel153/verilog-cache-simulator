@@ -1,4 +1,4 @@
-``timescale 1ns/1ps
+`timescale 1ns/1ps
 
 // Replace $clog2 with a standard Verilog-compatible function
 function integer clog2;
@@ -61,9 +61,9 @@ module cache_system_2level #(
 
     // LRU selection function
     function integer lru_select;
-        input bit;
+        input bit_val;
         begin
-            if (bit) lru_select = 0;
+            if (bit_val) lru_select = 0;
             else lru_select = 1;
         end
     endfunction

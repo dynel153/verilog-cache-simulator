@@ -13,15 +13,14 @@ module cache_system_4way #(
     output reg l2_hit
 );
 
-    // Internal wires
     wire l1_cache_hit, l2_cache_hit;
     wire [DATA_WIDTH-1:0] l1_data_out, l2_data_out;
 
-    // Instantiate L1 4-way cache (small)
+    // Instantiate L1 (smaller)
     cache_4way #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .CACHE_SIZE(256),  // Smaller L1
+        .CACHE_SIZE(256),
         .BLOCK_SIZE(16)
     ) l1 (
         .clk(clk),
@@ -32,11 +31,11 @@ module cache_system_4way #(
         .hit(l1_cache_hit)
     );
 
-    // Instantiate L2 4-way cache (larger)
+    // Instantiate L2 (larger)
     cache_4wayl2 #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .CACHE_SIZE(512),  // Larger L2
+        .CACHE_SIZE(512),
         .BLOCK_SIZE(32)
     ) l2 (
         .clk(clk),
@@ -47,29 +46,31 @@ module cache_system_4way #(
         .hit(l2_cache_hit)
     );
 
-    // Main logic for hierarchy
+    // Register to simulate L1 promotion manually
+    reg promote_to_l1;
+    reg [DATA_WIDTH-1:0] promoted_data;
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             read_data <= 0;
             l1_hit <= 0;
             l2_hit <= 0;
+            promote_to_l1 <= 0;
         end else if (read) begin
+            promote_to_l1 <= 0;
             l1_hit <= l1_cache_hit;
             l2_hit <= 0;
             read_data <= 0;
 
             if (l1_cache_hit) begin
                 read_data <= l1_data_out;
+            end else if (l2_cache_hit) begin
+                l2_hit <= 1;
+                read_data <= l2_data_out;
+                promoted_data <= l2_data_out;
+                promote_to_l1 <= 1;
             end else begin
-                if (l2_cache_hit) begin
-                    l2_hit <= 1;
-                    read_data <= l2_data_out;
-                    // Promote to L1: simulate read to L1 to store L2's data
-                    // L1 will store the L2 data on next clock cycle automatically via its logic
-                end else begin
-                    // L2 miss: insert fake memory data to both L2 and L1
-                    read_data <= 32'hCAFEBABE;
-                end
+                read_data <= 32'hD00DFEED;
             end
         end
     end

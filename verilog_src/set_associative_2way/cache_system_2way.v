@@ -2,7 +2,7 @@
 
 module cache_system_2way #(
     parameter ADDR_WIDTH = 11,
-    parameter DATA_WIDTH = 11,
+    parameter DATA_WIDTH = 32,  // Updated to 32 bits
 
     // L1 cache parameters
     parameter L1_BLOCK_SIZE  = 16,
@@ -123,7 +123,7 @@ module cache_system_2way #(
                 end
 
                 if (!l2_hit) begin
-                    mem_data = 11'h3F3;
+                    mem_data = 32'h000003F3;  // Updated to 32-bit
 
                     // L2 Fill
                     j = lru_select(l2_lru[l2_index]);

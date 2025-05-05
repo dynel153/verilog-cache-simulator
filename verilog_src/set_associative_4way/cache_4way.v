@@ -44,14 +44,17 @@ module cache_4way #(
                 data_array[index][i] <= 0;
             end
             lru[index] <= 0;
-        end else if (write_enable) begin
-            // Write path: promote data from L2 to L1
+        end
+        else if (write_enable) begin
+            // Promote data from L2
             replace_way = lru[index];
             tag_array[index][replace_way] <= tag;
             data_array[index][replace_way] <= write_data;
             valid_array[index][replace_way] <= 1;
             lru[index] <= (replace_way + 1) % NUM_WAYS;
-        end else if (read) begin
+            $display("L1 WRITE: Addr = 0x%h | Tag = 0x%h | Data = 0x%h", addr, tag, write_data);
+        end
+        else if (read) begin
             hit <= 0;
             found = 0;
 
@@ -61,6 +64,7 @@ module cache_4way #(
                     found = 1;
                     read_data <= data_array[index][i];
                     lru[index] <= i;
+                    $display("L1 READ HIT: Addr = 0x%h | Tag = 0x%h | Way = %0d | Data = 0x%h", addr, tag, i, read_data);
                 end
             end
 
@@ -71,7 +75,9 @@ module cache_4way #(
                 data_array[index][replace_way] <= 32'hD00DFEED;
                 read_data <= 32'hD00DFEED;
                 lru[index] <= (replace_way + 1) % NUM_WAYS;
+                $display("L1 MISS: Addr = 0x%h | Inserted Data = 0xD00DFEED", addr);
             end
         end
     end
+
 endmodule

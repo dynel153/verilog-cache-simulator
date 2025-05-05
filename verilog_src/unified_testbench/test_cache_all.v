@@ -1,90 +1,103 @@
 `timescale 1ns/1ps
 
 module test_cache_all;
+    reg clk, rst, read;
+    reg [10:0] addr;
 
-    // Parameters
-    parameter ADDR_WIDTH = 11;
-    parameter DATA_WIDTH = 32;
-    parameter TRACE_LENGTH = 10;
+    wire [10:0] read_data_direct, read_data_2way;
+    wire [31:0] read_data_4way;
+    wire l1_hit_direct, l2_hit_direct;
+    wire l1_hit_2way,   l2_hit_2way;
+    wire l1_hit_4way,   l2_hit_4way;
 
-    // Inputs
-    reg clk;
-    reg rst;
-    reg read;
-    reg [ADDR_WIDTH-1:0] addr;
+    integer i;
+    integer hit_count_direct = 0, miss_count_direct = 0;
+    integer hit_count_2way   = 0, miss_count_2way   = 0;
+    integer hit_count_4way   = 0, miss_count_4way   = 0;
 
-    // Shared access trace
-    reg [ADDR_WIDTH-1:0] trace [0:TRACE_LENGTH-1];
-
-    // Outputs for each cache system
-    wire [DATA_WIDTH-1:0] data_direct, data_2way, data_4way;
-    wire hit_direct, hit_2way, hit_4way;
-
-    // Instantiate Direct-Mapped Cache
+    // Instantiate Direct-mapped Cache
     cache_system_direct direct_cache (
-        .clk(clk), .rst(rst), .read(read), .addr(addr),
-        .read_data(data_direct), .hit(hit_direct)
+        .clk(clk),
+        .rst(rst),
+        .addr(addr),
+        .read(read),
+        .read_data(read_data_direct),
+        .l1_hit(l1_hit_direct),
+        .l2_hit(l2_hit_direct)
     );
 
     // Instantiate 2-Way Cache
-    cache_system_2way cache_2way (
-        .clk(clk), .rst(rst), .read(read), .addr(addr),
-        .read_data(data_2way), .l1_hit(hit_2way), .l2_hit()
+    cache_system_2way assoc2way_cache (
+        .clk(clk),
+        .rst(rst),
+        .addr(addr),
+        .read(read),
+        .read_data(read_data_2way),
+        .l1_hit(l1_hit_2way),
+        .l2_hit(l2_hit_2way)
     );
 
     // Instantiate 4-Way Cache
-    cache_system_4way cache_4way (
-        .clk(clk), .rst(rst), .read(read), .addr(addr),
-        .read_data(data_4way), .l1_hit(hit_4way), .l2_hit()
+    cache_system_4way assoc4way_cache (
+        .clk(clk),
+        .rst(rst),
+        .addr(addr),
+        .read(read),
+        .read_data(read_data_4way),
+        .l1_hit(l1_hit_4way),
+        .l2_hit(l2_hit_4way)
     );
-
-    // Stats
-    integer i;
-    integer hits_direct = 0, hits_2way = 0, hits_4way = 0;
 
     // Clock generation
     always #5 clk = ~clk;
 
     initial begin
-        // Initialize trace
-        trace[0] = 11'h020;
-        trace[1] = 11'h040;
-        trace[2] = 11'h060;
-        trace[3] = 11'h020;
-        trace[4] = 11'h080;
-        trace[5] = 11'h0a0;
-        trace[6] = 11'h040;
-        trace[7] = 11'h0c0;
-        trace[8] = 11'h0e0;
-        trace[9] = 11'h020;
-
-        // Init signals
+        $display("Starting unified cache test...");
         clk = 0; rst = 1; read = 0; addr = 0;
-        #10 rst = 0;
+        #20 rst = 0;
 
-        $display("Time\tAddr\tDirectHit\t2WayHit\t4WayHit\tDirectData\t2WayData\t4WayData");
+        // Run test accesses
+        for (i = 0; i < 16; i = i + 1) begin
+            @(posedge clk);
+            addr <= i * 16;
+            read <= 1;
+            @(posedge clk);
+            read <= 0;
 
-        for (i = 0; i < TRACE_LENGTH; i = i + 1) begin
-            @(negedge clk);
-            addr = trace[i];
-            read = 1;
-            @(negedge clk);
-            read = 0;
-            @(negedge clk);
-            $display("%0t\t%h\t%b\t\t%b\t\t%b\t%h\t%h\t%h", $time, addr, hit_direct, hit_2way, hit_4way, data_direct, data_2way, data_4way);
+            // Direct-mapped stats
+            if (l1_hit_direct || l2_hit_direct)
+                hit_count_direct = hit_count_direct + 1;
+            else
+                miss_count_direct = miss_count_direct + 1;
 
-            // Count hits
-            if (hit_direct) hits_direct = hits_direct + 1;
-            if (hit_2way) hits_2way = hits_2way + 1;
-            if (hit_4way) hits_4way = hits_4way + 1;
+            // 2-way stats
+            if (l1_hit_2way || l2_hit_2way)
+                hit_count_2way = hit_count_2way + 1;
+            else
+                miss_count_2way = miss_count_2way + 1;
+
+            // 4-way stats
+            if (l1_hit_4way || l2_hit_4way)
+                hit_count_4way = hit_count_4way + 1;
+            else
+                miss_count_4way = miss_count_4way + 1;
         end
 
-        $display("\n--- Results ---");
-        $display("Direct-Mapped Hits: %0d / %0d", hits_direct, TRACE_LENGTH);
-        $display("2-Way SA Hits:      %0d / %0d", hits_2way, TRACE_LENGTH);
-        $display("4-Way SA Hits:      %0d / %0d", hits_4way, TRACE_LENGTH);
+        // Calculate AMAT (assume L1 = 1 cycle, L2 = 10, Mem = 100)
+        $display("\n==== RESULTS ====");
+        $display("Direct-Mapped Hits: %0d, Misses: %0d", hit_count_direct, miss_count_direct);
+        $display("2-Way Assoc Hits:   %0d, Misses: %0d", hit_count_2way, miss_count_2way);
+        $display("4-Way Assoc Hits:   %0d, Misses: %0d", hit_count_4way, miss_count_4way);
+
+        real total = hit_count_direct + miss_count_direct;
+        real amat_direct = (hit_count_direct * 1 + (miss_count_direct * 10)) / total;
+        real amat_2way    = (hit_count_2way * 1 + (miss_count_2way * 10)) / total;
+        real amat_4way    = (hit_count_4way * 1 + (miss_count_4way * 10)) / total;
+
+        $display("AMAT (Direct): %.2f", amat_direct);
+        $display("AMAT (2-Way):  %.2f", amat_2way);
+        $display("AMAT (4-Way):  %.2f", amat_4way);
 
         $finish;
     end
-
 endmodule

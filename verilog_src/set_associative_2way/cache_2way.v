@@ -1,15 +1,4 @@
-`timescale 1ns/1ps
-
-// Replace $clog2 with a standard Verilog-compatible function
-function integer clog2;
-    input integer value;
-    integer i;
-    begin
-        clog2 = 0;
-        for (i = value - 1; i > 0; i = i >> 1)
-            clog2 = clog2 + 1;
-    end
-endfunction
+``timescale 1ns/1ps
 
 module cache_system_2level #(
     parameter ADDR_WIDTH = 11,
@@ -42,6 +31,17 @@ module cache_system_2level #(
     output reg l2_hit
 );
 
+    // Function inside module
+    function integer clog2;
+        input integer value;
+        integer i;
+        begin
+            clog2 = 0;
+            for (i = value - 1; i > 0; i = i >> 1)
+                clog2 = clog2 + 1;
+        end
+    endfunction
+
     // Address decomposition
     wire [L1_TAG_WIDTH-1:0]   l1_tag = addr[ADDR_WIDTH-1 -: L1_TAG_WIDTH];
     wire [L1_INDEX_WIDTH-1:0] l1_index = addr[L1_OFFSET_WIDTH +: L1_INDEX_WIDTH];
@@ -69,6 +69,8 @@ module cache_system_2level #(
     endfunction
 
     integer i, j, w;
+    reg [DATA_WIDTH-1:0] mem_data;
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             for (i = 0; i < L1_NUM_SETS; i = i + 1) begin
@@ -121,7 +123,6 @@ module cache_system_2level #(
                 end
 
                 if (!l2_hit) begin
-                    reg [DATA_WIDTH-1:0] mem_data;
                     mem_data = 11'h3F3;
 
                     // L2 Fill
@@ -144,4 +145,3 @@ module cache_system_2level #(
         end
     end
 endmodule
-

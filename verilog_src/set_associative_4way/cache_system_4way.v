@@ -6,94 +6,72 @@ module cache_system_4way #(
 )(
     input clk,
     input rst,
-    input read,
     input [ADDR_WIDTH-1:0] addr,
+    input read,
     output reg [DATA_WIDTH-1:0] read_data,
     output reg l1_hit,
     output reg l2_hit
 );
 
-    // Internal signals
-    wire [DATA_WIDTH-1:0] l1_data_out;
-    wire [DATA_WIDTH-1:0] l2_data_out;
-    wire l1_local_hit, l2_local_hit;
+    // Internal wires
+    wire l1_cache_hit, l2_cache_hit;
+    wire [DATA_WIDTH-1:0] l1_data_out, l2_data_out;
 
-    reg l1_read, l2_read;
-    reg [1:0] state;
-
-    // States
-    localparam IDLE = 2'b00,
-               READ_L1 = 2'b01,
-               READ_L2 = 2'b10,
-               MEM_FETCH = 2'b11;
-
-    // Instantiate L1
-    cache_4way l1_cache (
+    // Instantiate L1 4-way cache (small)
+    cache_4way #(
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH),
+        .CACHE_SIZE(256),  // Smaller L1
+        .BLOCK_SIZE(16)
+    ) l1 (
         .clk(clk),
         .rst(rst),
-        .read(l1_read),
+        .read(read),
         .addr(addr),
         .read_data(l1_data_out),
-        .hit(l1_local_hit)
+        .hit(l1_cache_hit)
     );
 
-    // Instantiate L2
-    cache_4wayl2 l2_cache (
+    // Instantiate L2 4-way cache (larger)
+    cache_4wayl2 #(
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH),
+        .CACHE_SIZE(512),  // Larger L2
+        .BLOCK_SIZE(32)
+    ) l2 (
         .clk(clk),
         .rst(rst),
-        .read(l2_read),
+        .read(read),
         .addr(addr),
         .read_data(l2_data_out),
-        .hit(l2_local_hit)
+        .hit(l2_cache_hit)
     );
 
+    // Main logic for hierarchy
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            state <= IDLE;
             read_data <= 0;
             l1_hit <= 0;
             l2_hit <= 0;
-        end else begin
-            l1_read <= 0;
-            l2_read <= 0;
-            l1_hit <= 0;
+        end else if (read) begin
+            l1_hit <= l1_cache_hit;
             l2_hit <= 0;
+            read_data <= 0;
 
-            case (state)
-                IDLE: begin
-                    if (read) begin
-                        l1_read <= 1;
-                        state <= READ_L1;
-                    end
+            if (l1_cache_hit) begin
+                read_data <= l1_data_out;
+            end else begin
+                if (l2_cache_hit) begin
+                    l2_hit <= 1;
+                    read_data <= l2_data_out;
+                    // Promote to L1: simulate read to L1 to store L2's data
+                    // L1 will store the L2 data on next clock cycle automatically via its logic
+                end else begin
+                    // L2 miss: insert fake memory data to both L2 and L1
+                    read_data <= 32'hCAFEBABE;
                 end
-
-                READ_L1: begin
-                    if (l1_local_hit) begin
-                        read_data <= l1_data_out;
-                        l1_hit <= 1;
-                        state <= IDLE;
-                    end else begin
-                        l2_read <= 1;
-                        state <= READ_L2;
-                    end
-                end
-
-                READ_L2: begin
-                    if (l2_local_hit) begin
-                        read_data <= l2_data_out;
-                        l2_hit <= 1;
-                        l1_read <= 1; // Promote to L1
-                        state <= IDLE;
-                    end else begin
-                        read_data <= 32'hCAFEBABE; // Simulate memory fetch
-                        l1_read <= 1;
-                        l2_read <= 1;
-                        state <= IDLE;
-                    end
-                end
-
-                default: state <= IDLE;
-            endcase
+            end
         end
     end
+
 endmodule

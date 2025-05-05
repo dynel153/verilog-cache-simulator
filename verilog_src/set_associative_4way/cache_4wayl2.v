@@ -46,6 +46,8 @@ module cache_4wayl2 #(
             hit <= 0;
             read_data <= 0;
         end else if (read) begin
+            $display("L2 CHECKING Addr = 0x%h | Tag = 0x%h | Index = %0d", addr, tag, index);
+
             hit <= 0;
             found = 0;
 

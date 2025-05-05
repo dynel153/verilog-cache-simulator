@@ -16,7 +16,7 @@ module cache_system_tb;
     wire l2_hit;
 
     // Instantiate DUT
-    cache_system_2level dut (
+    cache_system_full2way dut (
         .clk(clk),
         .rst(rst),
         .addr(addr),

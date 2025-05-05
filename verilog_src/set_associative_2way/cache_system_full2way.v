@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module cache_system_2level #(
+module cache_system_full2way #(
     parameter ADDR_WIDTH = 11,
     parameter DATA_WIDTH = 11,
 

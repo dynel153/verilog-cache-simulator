@@ -2,7 +2,7 @@
 
 module cache_system_direct #(
     parameter ADDR_WIDTH = 11,
-    parameter DATA_WIDTH = 32
+    parameter DATA_WIDTH = 11
 )(
     input  wire                   clk,
     input  wire                   rst,

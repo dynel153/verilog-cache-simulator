@@ -21,9 +21,10 @@ module cache_direct (
     wire [3:0] index = addr[7:4];
     wire [TAG_WIDTH-1:0] tag = addr[10:8];
 
+    integer i; // Moved outside procedural block
+
     always @(posedge clk) begin
         if (rst) begin
-            integer i;
             for (i = 0; i < BLOCKS; i = i + 1) begin
                 valid_array[i] <= 0;
                 tag_array[i] <= 0;
@@ -44,4 +45,3 @@ module cache_direct (
     end
 
 endmodule
-

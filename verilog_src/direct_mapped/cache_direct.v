@@ -5,7 +5,7 @@ module cache_direct (
     input rst,                    // Reset signal
     input read,                   // Read enable signal
     input [10:0] addr,            // 11-bit address input
-    output reg [10:0] read_data,  // Data output (fixed for simulation)
+    output reg [31:0] read_data,  // Updated: 32-bit data output
     output reg hit                // Output: 1 = hit, 0 = miss
 );
 
@@ -21,7 +21,7 @@ module cache_direct (
     wire [3:0] index = addr[7:4];
     wire [TAG_WIDTH-1:0] tag = addr[10:8];
 
-    integer i; // Moved outside procedural block
+    integer i;
 
     always @(posedge clk) begin
         if (rst) begin
@@ -34,10 +34,10 @@ module cache_direct (
         end else if (read) begin
             if (valid_array[index] && tag_array[index] == tag) begin
                 hit <= 1'b1;
-                read_data <= 11'h3F3; // Simulated read data on hit
+                read_data <= 32'h000003F3; // Zero-extended for 32-bit output
             end else begin
                 hit <= 1'b0;
-                read_data <= 11'h3F3; // Still output data for continuity
+                read_data <= 32'h000003F3;
                 tag_array[index] <= tag;
                 valid_array[index] <= 1'b1;
             end

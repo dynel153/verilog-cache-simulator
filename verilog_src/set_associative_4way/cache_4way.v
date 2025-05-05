@@ -3,12 +3,14 @@
 module cache_4way #(
     parameter ADDR_WIDTH = 11,
     parameter DATA_WIDTH = 32,
-    parameter CACHE_SIZE = 256,     // total cache size in bytes
-    parameter BLOCK_SIZE = 16       // size of each block in bytes
+    parameter CACHE_SIZE = 256,
+    parameter BLOCK_SIZE = 16
 )(
     input wire clk,
     input wire rst,
     input wire read,
+    input wire write_enable,
+    input wire [DATA_WIDTH-1:0] write_data,
     input wire [ADDR_WIDTH-1:0] addr,
     output reg [DATA_WIDTH-1:0] read_data,
     output reg hit
@@ -23,7 +25,7 @@ module cache_4way #(
     reg [TAG_WIDTH-1:0] tag_array [0:NUM_SETS-1][0:NUM_WAYS-1];
     reg valid_array [0:NUM_SETS-1][0:NUM_WAYS-1];
     reg [DATA_WIDTH-1:0] data_array [0:NUM_SETS-1][0:NUM_WAYS-1];
-    reg [1:0] lru [0:NUM_SETS-1];  // For 4-way, 2 bits are enough for simple pseudo-LRU
+    reg [1:0] lru [0:NUM_SETS-1];
 
     wire [TAG_WIDTH-1:0] tag = addr[ADDR_WIDTH-1 -: TAG_WIDTH];
     wire [INDEX_WIDTH-1:0] index = addr[OFFSET_WIDTH +: INDEX_WIDTH];
@@ -42,6 +44,13 @@ module cache_4way #(
                 data_array[index][i] <= 0;
             end
             lru[index] <= 0;
+        end else if (write_enable) begin
+            // Write path: promote data from L2 to L1
+            replace_way = lru[index];
+            tag_array[index][replace_way] <= tag;
+            data_array[index][replace_way] <= write_data;
+            valid_array[index][replace_way] <= 1;
+            lru[index] <= (replace_way + 1) % NUM_WAYS;
         end else if (read) begin
             hit <= 0;
             found = 0;
@@ -51,17 +60,17 @@ module cache_4way #(
                     hit <= 1;
                     found = 1;
                     read_data <= data_array[index][i];
-                    lru[index] <= i; // update LRU info
+                    lru[index] <= i;
                 end
             end
 
             if (!found) begin
-                replace_way = lru[index]; // Replace the least recently used
+                replace_way = lru[index];
                 tag_array[index][replace_way] <= tag;
                 valid_array[index][replace_way] <= 1;
-                data_array[index][replace_way] <= 32'hD00DFEED; // simulated memory data
+                data_array[index][replace_way] <= 32'hD00DFEED;
                 read_data <= 32'hD00DFEED;
-                lru[index] <= (replace_way + 1) % NUM_WAYS; // round-robin LRU
+                lru[index] <= (replace_way + 1) % NUM_WAYS;
             end
         end
     end

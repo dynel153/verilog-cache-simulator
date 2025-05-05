@@ -34,14 +34,17 @@ module cache_4wayl2 #(
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
+            integer s, w;
+            for (s = 0; s < NUM_SETS; s = s + 1) begin
+                for (w = 0; w < NUM_WAYS; w = w + 1) begin
+                    valid_array[s][w] <= 0;
+                    tag_array[s][w] <= 0;
+                    data_array[s][w] <= 0;
+                end
+                lru[s] <= 0;
+            end
             hit <= 0;
             read_data <= 0;
-            for (i = 0; i < NUM_WAYS; i = i + 1) begin
-                valid_array[index][i] <= 0;
-                tag_array[index][i] <= 0;
-                data_array[index][i] <= 0;
-            end
-            lru[index] <= 0;
         end else if (read) begin
             hit <= 0;
             found = 0;
@@ -51,17 +54,19 @@ module cache_4wayl2 #(
                     hit <= 1;
                     found = 1;
                     read_data <= data_array[index][i];
-                    lru[index] <= i; // update LRU info
+                    lru[index] <= i;
+                    $display("L2 HIT: Addr = 0x%h | Tag = 0x%h | Way = %0d | Data = 0x%h", addr, tag, i, read_data);
                 end
             end
 
             if (!found) begin
-                replace_way = lru[index]; // Replace the least recently used
+                replace_way = lru[index];
                 tag_array[index][replace_way] <= tag;
                 valid_array[index][replace_way] <= 1;
-                data_array[index][replace_way] <= 32'hDEADBEEF; // simulated memory data
+                data_array[index][replace_way] <= 32'hDEADBEEF;
                 read_data <= 32'hDEADBEEF;
-                lru[index] <= (replace_way + 1) % NUM_WAYS; // round-robin LRU
+                lru[index] <= (replace_way + 1) % NUM_WAYS;
+                $display("L2 MISS: Addr = 0x%h | Tag = 0x%h | Index = %0d | Replacing Way = %0d", addr, tag, index, replace_way);
             end
         end
     end

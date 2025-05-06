@@ -15,6 +15,11 @@ module test_cache_all;
     reg [31:0] direct_miss, two_way_miss, four_way_miss;
     integer i;
 
+    // Declare real variables for AMAT calculation
+    real direct_miss_rate, twoway_miss_rate, fourway_miss_rate;
+    real l1_time, l2_time, mem_time, l2_hit_prob;
+    real amat_direct, amat_2way, amat_4way;
+
     // Instantiate the caches
     wire l1_hit_direct, l1_hit_2way, l1_hit_4way;
     wire l2_hit_direct, l2_hit_2way, l2_hit_4way;
@@ -98,18 +103,18 @@ module test_cache_all;
         $display("4-Way Cache : Hits = %0d, Misses = %0d", four_way_hit, four_way_miss);
 
         // AMAT calculation
-        real direct_miss_rate = direct_miss / 10000.0;
-        real twoway_miss_rate = two_way_miss / 10000.0;
-        real fourway_miss_rate = four_way_miss / 10000.0;
+        direct_miss_rate = direct_miss / 10000.0;
+        twoway_miss_rate = two_way_miss / 10000.0;
+        fourway_miss_rate = four_way_miss / 10000.0;
 
-        real l1_time = 1;
-        real l2_time = 5;
-        real mem_time = 100;
-        real l2_hit_prob = 0.5;
+        l1_time = 1;
+        l2_time = 5;
+        mem_time = 100;
+        l2_hit_prob = 0.5;
 
-        real amat_direct = l1_time + direct_miss_rate * (l2_time + (1 - l2_hit_prob) * mem_time);
-        real amat_2way   = l1_time + twoway_miss_rate * (l2_time + (1 - l2_hit_prob) * mem_time);
-        real amat_4way   = l1_time + fourway_miss_rate * (l2_time + (1 - l2_hit_prob) * mem_time);
+        amat_direct = l1_time + direct_miss_rate * (l2_time + (1 - l2_hit_prob) * mem_time);
+        amat_2way   = l1_time + twoway_miss_rate * (l2_time + (1 - l2_hit_prob) * mem_time);
+        amat_4way   = l1_time + fourway_miss_rate * (l2_time + (1 - l2_hit_prob) * mem_time);
 
         $display("\n--- Final AMAT Results ---");
         $display("Direct-Mapped AMAT: %.2f cycles", amat_direct);

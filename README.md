@@ -67,4 +67,8 @@ Direct-Mapped: Hits = 1227, Misses = 8773 → AMAT = 49.25 cycles
 
 Ran simulation using iverilog and vvp. Output matched expectations. Committed and pushed final codebase to GitHub. Cache simulation project completed successfully. 
 
- 
+ Simulation:
+ unified_testbench
+ Command line for module: iverilog -o cache_sim test_cache_all.v ../direct_mapped/cache_system_direct.v ../direct_mapped/cache_direct.v ../direct_mapped/cache_directl2.v ../set_associative_2way/cache_system_2way.v ../set_associative_4way/cache_system_4way.v ../set_associative_4way/cache_4way.v ../set_associative_4way/cache_4wayl2.v
+Command line to start: vvp cache_sim
+
